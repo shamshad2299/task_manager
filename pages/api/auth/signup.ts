@@ -14,14 +14,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return errorResponse(res, "Too many signup attempts. Please try again later.", 429);
   }
 
-  const { name, email, password } = req.body;
+  const body = typeof req.body === "object" && req.body !== null ? req.body : {};
+  const { name, email, password } = body as { name?: unknown; email?: unknown; password?: unknown };
+  const cleanName = typeof name === "string" ? name.trim() : "";
   const cleanEmail = typeof email === "string" ? normalizeEmail(email) : "";
 
-  if (!name || !email || !password) {
+  if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string" || !name || !email || !password) {
     return errorResponse(res, "Name, email and password are required.");
   }
 
-  if (!validateName(name)) {
+  if (!validateName(cleanName)) {
     return errorResponse(res, "Name must be between 2 and 100 characters.");
   }
 
@@ -44,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const user = await prisma.user.create({
     data: {
-      name,
+      name: cleanName,
       email: cleanEmail,
       password: passwordHash,
       role,

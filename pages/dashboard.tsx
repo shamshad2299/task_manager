@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 
 type User = {
@@ -56,16 +56,16 @@ export default function DashboardPage() {
   const [taskDueDate, setTaskDueDate] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(null);
 
   const isAdmin = user?.role === "ADMIN";
-  const token = typeof window !== "undefined" ? localStorage.getItem("ttm_token") : null;
 
   const authHeaders = useMemo(
     () => ({ Authorization: token ? `Bearer ${token}` : "" }),
     [token]
   );
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     if (!token) return;
 
     const [userRes, projectRes, taskRes] = await Promise.all([
@@ -96,19 +96,27 @@ export default function DashboardPage() {
     }
 
     setLoading(false);
-  }
+  }, [authHeaders, router, token]);
 
   useEffect(() => {
-    if (!token) {
+    const storedToken = localStorage.getItem("ttm_token");
+
+    if (!storedToken) {
       router.push("/login");
       return;
     }
+
+    setToken(storedToken);
+  }, [router]);
+
+  useEffect(() => {
+    if (!token) return;
 
     loadData().catch(() => {
       setMessage({ type: "error", text: "Could not load dashboard data." });
       setLoading(false);
     });
-  }, [token, router, authHeaders]);
+  }, [loadData, token]);
 
   const selectedProject = projects.find((project) => project.id === taskProjectId);
   const assignableUsers = useMemo(() => {

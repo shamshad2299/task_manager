@@ -14,10 +14,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return errorResponse(res, "Too many login attempts. Please try again later.", 429);
   }
 
-  const { email, password } = req.body;
+  const body = typeof req.body === "object" && req.body !== null ? req.body : {};
+  const { email, password } = body as { email?: unknown; password?: unknown };
   const cleanEmail = typeof email === "string" ? normalizeEmail(email) : "";
 
-  if (!email || !password) {
+  if (typeof email !== "string" || typeof password !== "string" || !email || !password) {
     return errorResponse(res, "Email and password are required.");
   }
 
